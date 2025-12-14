@@ -19,6 +19,7 @@ async function auth(req, res, next) {
       name: user.name,
       email: user.email,
       location: user.location,
+      picture: user.picture, // ✅ ADDED THIS LINE
     };
 
     next();

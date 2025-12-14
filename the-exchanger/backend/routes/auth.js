@@ -2,13 +2,18 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library'); 
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID); 
+
 
 if (!process.env.JWT_SECRET) {
   console.error('❌ ERROR: JWT_SECRET is NOT SET in .env');
 }
 
+// REGISTER
 // REGISTER
 router.post('/register', async (req, res) => {
   try {
@@ -30,6 +35,7 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       location,
+      authProvider: 'local' // ✅ ADD THIS LINE
     });
 
     await user.save();
@@ -46,6 +52,7 @@ router.post('/register', async (req, res) => {
         name: user.name,
         email: user.email,
         location: user.location || null,
+        picture: user.picture || null, // ✅ ADD THIS LINE
       },
     });
   } catch (error) {
@@ -54,6 +61,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// LOGIN
 // LOGIN
 router.post('/login', async (req, res) => {
   try {
@@ -66,6 +74,13 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // ✅ ADD THIS CHECK (prevents OAuth users from using email/password)
+    if (user.authProvider !== 'local') {
+      return res.status(400).json({ 
+        message: `Please login with ${user.authProvider}` 
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -85,6 +100,7 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         location: user.location || null,
+        picture: user.picture || null, // ✅ ADD THIS LINE
       },
     });
   } catch (error) {
@@ -92,10 +108,75 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+// ✅ ADD THIS ENTIRE NEW ROUTE
+// GOOGLE OAUTH LOGIN
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
 
-// GET CURRENT USER (/me)
-router.get('/me', auth, async (req, res) => {
-  res.json({ user: req.user });
+    if (!credential) {
+      return res.status(400).json({ message: 'No credential provided' });
+    }
+
+    // Verify Google token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: providerId, email, name, picture } = payload;
+
+    // Check if user exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // User exists - check if they registered with email/password
+      if (user.authProvider === 'local') {
+        return res.status(400).json({ 
+          message: 'Email already registered. Please login with password.' 
+        });
+      }
+
+      // Update profile picture if changed
+      if (user.picture !== picture) {
+        user.picture = picture;
+        await user.save();
+      }
+    } else {
+      // Create new user
+      user = new User({
+        name,
+        email,
+        authProvider: 'google',
+        providerId,
+        picture,
+      });
+      await user.save();
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        location: user.location || null,
+        picture: user.picture || null,
+      },
+    });
+  } catch (error) {
+    console.error('GOOGLE AUTH ERROR:', error);
+    res.status(500).json({ 
+      message: 'Google authentication failed', 
+      error: error.message 
+    });
+  }
 });
-
 module.exports = router;

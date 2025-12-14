@@ -1,5 +1,3 @@
-
-// src/components/CreateListing.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -24,49 +22,96 @@ export default function CreateListing() {
   const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('');
   const [location, setLocation] = useState(user?.location || '');
-  const [images, setImages] = useState(['']);
+  const [status, setStatus] = useState('available');
+
+  // Local file objects (NOT saved directly)
+  const [files, setFiles] = useState([]);
+
+  // Image URLs added manually
+  const [imageUrls, setImageUrls] = useState([]);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const onChangeImage = (idx, val) => {
-    const next = [...images];
-    next[idx] = val;
-    setImages(next);
+  /* -------------------- Image handlers -------------------- */
+
+  const onFilesSelected = (e) => {
+    setFiles(Array.from(e.target.files));
   };
 
-  const addImageField = () => setImages((arr) => [...arr, '']);
-  const removeImageField = (idx) =>
-    setImages((arr) => arr.filter((_, i) => i !== idx));
+  const addImageUrl = () => {
+    if (imageUrlInput.trim()) {
+      setImageUrls((prev) => [...prev, imageUrlInput.trim()]);
+      setImageUrlInput('');
+    }
+  };
+
+  const removeFile = (idx) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const removeUrl = (idx) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  /* -------------------- Submit -------------------- */
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setSubmitting(true);
+    setError('');
 
     try {
-      const payload = {
-        title,
-        description,
-        category,
-        condition: condition || undefined,
-        images: images.filter(Boolean),
-        location,
-        status: 'available',
-      };
+      let uploadedImages = [];
 
-      await axios.post(`${API_URL}/listings`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 1️⃣ Upload files to backend
+      if (files.length > 0) {
+        const form = new FormData();
+        files.forEach((f) => form.append('images', f));
 
-      // Invalidate all /listings keys so Browse updates
-      await mutate(
-        (key) => typeof key === 'string' && key.startsWith(`${API_URL}/listings`),
-        undefined,
-        { revalidate: true }
+        const uploadRes = await axios.post(
+          `${API_URL}/uploads/listing-images`,
+          form,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+
+        uploadedImages = uploadRes.data.images;
+      }
+
+      // 2️⃣ Combine uploaded images + URL images
+      const finalImages = [
+        ...uploadedImages,
+        ...imageUrls
+      ];
+
+      // 3️⃣ Create listing
+      await axios.post(
+        `${API_URL}/listings`,
+        {
+          title,
+          description,
+          category,
+          condition: condition || undefined,
+          location,
+          status,
+          images: finalImages,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
-      navigate('/my-listings'); // or navigate('/browse')
+      await mutate((key) =>
+        typeof key === 'string' && key.includes('/listings')
+      );
+
+      navigate('/my');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create listing.');
     } finally {
@@ -74,11 +119,20 @@ export default function CreateListing() {
     }
   };
 
+  if (!token || !user) {
+    return (
+      <div className="max-w-xl mx-auto p-6 text-gray-700">
+        You must be logged in to create a listing.
+      </div>
+    );
+  }
+
+  /* -------------------- UI -------------------- */
+
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6 flex items-center gap-2">
-        <PlusCircle />
-        Create Listing
+        <PlusCircle /> Create Listing
       </h1>
 
       {error && (
@@ -88,106 +142,116 @@ export default function CreateListing() {
       )}
 
       <form onSubmit={onSubmit} className="bg-white shadow rounded p-6 space-y-4">
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">Title</label>
+
+        <input
+          required
+          placeholder="Title"
+          className="w-full border p-2 rounded"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+
+        <textarea
+          required
+          rows={4}
+          placeholder="Description"
+          className="w-full border p-2 rounded"
+          value={description}
+          onChange={(e) => setDesc(e.target.value)}
+        />
+
+        <select
+          required
+          className="w-full border p-2 rounded"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">Select category</option>
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        <select
+          className="w-full border p-2 rounded"
+          value={condition}
+          onChange={(e) => setCondition(e.target.value)}
+        >
+          <option value="">Select condition</option>
+          {CONDITIONS.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        <input
+          placeholder="Location"
+          className="w-full border p-2 rounded"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+
+        {/* Image URL input */}
+        <div className="flex gap-2">
           <input
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Nintendo Switch for trade"
-            required
+            className="flex-1 border p-2 rounded"
+            placeholder="https://image-url..."
+            value={imageUrlInput}
+            onChange={(e) => setImageUrlInput(e.target.value)}
           />
+          <button
+            type="button"
+            onClick={addImageUrl}
+            className="bg-gray-200 px-3 rounded"
+          >
+            Add
+          </button>
         </div>
 
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">Description</label>
-          <textarea
-            rows={4}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            value={description}
-            onChange={(e) => setDesc(e.target.value)}
-            placeholder="Condition, accessories, what you want in exchange, etc."
-            required
-          />
-        </div>
+        {/* File upload */}
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={onFilesSelected}
+        />
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Category</label>
-            <select
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-            >
-              <option value="">Select category</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Condition</label>
-            <select
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-              value={condition}
-              onChange={(e) => setCondition(e.target.value)}
-            >
-              <option value="">Select</option>
-              {CONDITIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">Location</label>
-          <input
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="City, State"
-          />
-        </div>
-
-        {/* Image URL fields */}
-        <div>
-          <label className="block text-sm text-gray-600 mb-2">Image URLs</label>
-          <div className="space-y-2">
-            {images.map((url, idx) => (
-              <div key={idx} className="flex gap-2">
-                <input
-                  className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-                  value={url}
-                  onChange={(e) => onChangeImage(idx, e.target.value)}
-                  placeholder="https://…"
+        {/* Preview */}
+        {(files.length > 0 || imageUrls.length > 0) && (
+          <div className="grid grid-cols-3 gap-2">
+            {files.map((file, i) => (
+              <div key={`f-${i}`} className="relative">
+                <img
+                  src={URL.createObjectURL(file)}
+                  className="w-full h-24 object-cover rounded"
                 />
                 <button
                   type="button"
-                  className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200"
-                  onClick={() => removeImageField(idx)}
-                  disabled={images.length === 1}
+                  onClick={() => removeFile(i)}
+                  className="absolute top-1 right-1 bg-red-500 text-white px-1 rounded text-xs"
                 >
-                  Remove
+                  X
+                </button>
+              </div>
+            ))}
+
+            {imageUrls.map((url, i) => (
+              <div key={`u-${i}`} className="relative">
+                <img src={url} className="w-full h-24 object-cover rounded" />
+                <button
+                  type="button"
+                  onClick={() => removeUrl(i)}
+                  className="absolute top-1 right-1 bg-red-500 text-white px-1 rounded text-xs"
+                >
+                  X
                 </button>
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            className="mt-2 text-blue-600 hover:underline"
-            onClick={addImageField}
-          >
-            + Add another image
-          </button>
-        </div>
+        )}
 
         <button
-          type="submit"
           disabled={submitting}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-60"
+          className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-60"
         >
           {submitting ? 'Creating…' : 'Create Listing'}
         </button>

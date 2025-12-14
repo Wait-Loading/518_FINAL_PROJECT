@@ -1,3 +1,4 @@
+
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -11,6 +12,7 @@ import BrowsePage from './pages/BrowsePage';
 import Login from './components/Login';
 import Register from './components/Register';
 import ListingDetailsPage from './pages/ListingDetailsPage';
+import EditListingPage from './pages/EditListingPage';
 
 // Protected pages
 import CreateListingPage from './pages/CreateListingPage';
@@ -33,6 +35,16 @@ export default function App() {
 
             {/* Listing details (view single listing + trade offers) */}
             <Route path="/listings/:id" element={<ListingDetailsPage />} />
+
+            {/* ✅ Edit listing (owner-only, protected) */}
+            <Route
+              path="/listings/:id/edit"
+              element={
+                <RequireAuth>
+                  <EditListingPage />
+                </RequireAuth>
+              }
+            />
 
             {/* Protected routes */}
             <Route

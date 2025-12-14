@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // ✅ ADD useEffect
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, User, MapPin, UserPlus } from 'lucide-react';
@@ -12,8 +12,57 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth(); // ✅ ADD googleLogin
   const navigate = useNavigate();
+
+  // ✅ ADD THIS ENTIRE useEffect
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    script.onload = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          callback: handleGoogleResponse,
+        });
+
+        window.google.accounts.id.renderButton(
+          document.getElementById('googleSignUpButton'),
+          { 
+            theme: 'outline', 
+            size: 'large',
+            width: '100%',
+            text: 'signup_with'
+          }
+        );
+      }
+    };
+
+    return () => {
+      if (script.parentNode) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  // ✅ ADD THIS FUNCTION
+  const handleGoogleResponse = async (response) => {
+    setError('');
+    setLoading(true);
+    
+    const result = await googleLogin(response.credential);
+    setLoading(false);
+    
+    if (result.success) {
+      navigate('/browse');
+    } else {
+      setError(result.message);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -51,6 +100,21 @@ export default function Register() {
               {error}
             </div>
           )}
+
+          {/* ✅ ADD THIS GOOGLE BUTTON SECTION */}
+          <div className="mb-6">
+            <div id="googleSignUpButton" className="w-full"></div>
+          </div>
+
+          {/* ✅ ADD THIS DIVIDER */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or register with email</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

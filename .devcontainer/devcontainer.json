@@ -1,0 +1,25 @@
+{
+  "name": "The Exchanger DevContainer",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+
+  // 👇 IMPORTANT: point to your actual project folder
+  "workspaceFolder": "/workspaces/the-exchanger",
+
+  // -----------------------
+  // Ports (vite + backend)
+  // -----------------------
+  "forwardPorts": [5000, 5173],
+
+  // -----------------------
+  // Env Vars for backend
+  // -----------------------
+  "containerEnv": {
+    "JWT_SECRET": "supersecretkey123",
+    "MONGO_URI": "mongodb+srv://jayp13161:Password13161@cluster0.jzssdvj.mongodb.net/mydatabase?retryWrites=true&w=majority"
+  },
+
+  // -----------------------
+  // Auto-install dependencies
+  // -----------------------
+  "postCreateCommand": "cd backend && npm install && cd ../frontend && npm install"
+}

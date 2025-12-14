@@ -72,6 +72,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ✅ NEW: Google OAuth Login
+  const googleLogin = async (credential) => {
+    try {
+      const { data } = await api.post('/auth/google', { credential });
+      setToken(data.token);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      await globalMutate(['auth/me', data.token], data.user, { revalidate: false });
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Google login failed' };
+    }
+  };
+
   const logout = async () => {
     await globalMutate(['auth/me', token], null, { revalidate: false });
     setToken(null);
@@ -81,7 +95,17 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, register, logout, loading: isLoading, error, API_URL }}
+      value={{ 
+        user, 
+        token, 
+        login, 
+        googleLogin, // ✅ ADDED
+        register, 
+        logout, 
+        loading: isLoading, 
+        error, 
+        API_URL 
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -5,15 +5,54 @@ import useSWR from 'swr';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { Search, Filter, MapPin, Clock, Tag, Package } from 'lucide-react';
+import { MapPin, Clock, Tag, Package } from 'lucide-react';
 
 const fetcher = (url) => axios.get(url).then((res) => res.data);
 
 const CATEGORIES = [
   'electronics', 'fashion', 'home', 'books', 'toys',
-  'services', 'vehicles', 'sports', 'other'
+  'services', 'vehicles', 'sports', 'other',
 ];
+
 const STATUS = ['available', 'pending', 'traded'];
+
+/**
+ * Derive the backend origin from API_URL.
+ * - If API_URL = "http://localhost:5000/api" -> origin = "http://localhost:5000"
+ * - If API_URL = "http://localhost:5000"     -> origin = "http://localhost:5000"
+ */
+function getOriginFromApiUrl(API_URL) {
+  if (!API_URL || typeof API_URL !== 'string') return '';
+  // Remove trailing slash
+  let base = API_URL.replace(/\/+$/, '');
+  // If ends with /api, strip it to get origin
+  base = base.replace(/\/api$/i, '');
+  return base;
+}
+
+/**
+ * Robust normalizer:
+ * - Accepts strings or objects { url: string }
+ * - Returns absolute URL:
+ *    * http(s), blob:, data: -> unchanged
+ *    * /api/uploads/... or /uploads/... -> prefix with origin
+ *    * other relative -> prefix with origin
+ */
+function normalizeImageUrl(API_URL, p) {
+  if (!p) return '';
+  let url = typeof p === 'string' ? p : p?.url || '';
+  if (!url || typeof url !== 'string') return '';
+
+  // Already absolute (http/https/blob/data)
+  if (/^(https?:|blob:|data:)/i.test(url)) return url;
+
+  // Build absolute from origin
+  const origin = getOriginFromApiUrl(API_URL);
+  if (!origin) return url; // fallback: return as-is
+
+  const rel = String(url).replace(/^\//, ''); // remove leading slash
+  return `${origin}/${rel}`;
+}
 
 export default function BrowsePage() {
   const { API_URL } = useAuth();
@@ -21,7 +60,7 @@ export default function BrowsePage() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
-  const [sort, setSort] = useState('newest'); // newest|oldest
+  const [sort, setSort] = useState('newest');
 
   const queryString = useMemo(() => {
     const p = new URLSearchParams();
@@ -32,13 +71,10 @@ export default function BrowsePage() {
     return p.toString();
   }, [q, category, status, sort]);
 
+  // If API_URL includes /api, this still works because listings is under /api
   const key = `${API_URL}/listings${queryString ? `?${queryString}` : ''}`;
-  const { data, error, isLoading } = useSWR(key, fetcher, {
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  });
+  const { data, error, isLoading } = useSWR(key, fetcher);
 
-  // If your backend returns an array directly, change to: const listings = data || [];
   const listings = data?.listings || [];
 
   return (
@@ -49,6 +85,7 @@ export default function BrowsePage() {
           <Package />
           Browse Items
         </h1>
+
         <Link
           to="/create"
           className="hidden md:inline-flex bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -60,84 +97,90 @@ export default function BrowsePage() {
       {/* Filters */}
       <div className="bg-white shadow rounded-lg p-4 mb-6">
         <div className="grid md:grid-cols-4 gap-4">
-          <div className="flex items-center gap-2">
-            <Search className="text-gray-400" size={20} />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search items…"
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            />
-          </div>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search items…"
+            className="border rounded px-3 py-2"
+          />
 
-          <div className="flex items-center gap-2">
-            <Filter className="text-gray-400" size={20} />
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            >
-              <option value="">All categories</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="">All categories</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
 
-          <div className="flex items-center gap-2">
-            <Tag className="text-gray-400" size={20} />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            >
-              <option value="">All status</option>
-              {STATUS.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="">All status</option>
+            {STATUS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
 
-          <div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
         </div>
       </div>
 
-      {/* Results */}
       {isLoading && (
         <div className="text-center text-gray-600">Loading listings…</div>
       )}
+
       {error && (
         <div className="text-center text-red-600">
-          Failed to load listings.
+          Failed to load listings
         </div>
       )}
+
       {!isLoading && listings.length === 0 && (
         <div className="text-center text-gray-600">
-          No items match your filters.
+          No items found
         </div>
       )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {listings.map((item) => (
-          <ListingCard key={item._id} item={item} />
+          <ListingCard
+            key={item._id}
+            item={item}
+            API_URL={API_URL}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function ListingCard({ item }) {
-  const thumb = item.images?.[0];
-  const created = new Date(item.createdAt).toLocaleDateString();
+/* ------------------------------------------------------------------ */
+/* --------------------------- Listing Card -------------------------- */
+/* ------------------------------------------------------------------ */
+
+function ListingCard({ item, API_URL }) {
+  const thumb = (() => {
+    if (!item.images || item.images.length === 0) return null;
+    const first = item.images[0];
+    const abs = normalizeImageUrl(API_URL, first);
+    return abs || null;
+  })();
+
+  const created = item.createdAt
+    ? new Date(item.createdAt).toLocaleDateString()
+    : '';
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -147,9 +190,17 @@ function ListingCard({ item }) {
             src={thumb}
             alt={item.title}
             className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            onError={(e) => {
+              // Helpful diagnostics while you’re testing paths
+              console.warn('Image failed to load:', thumb, 'for item:', item._id, item.title);
+              e.currentTarget.style.opacity = '0.4';
+              e.currentTarget.alt = 'Image failed to load';
+            }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <div className="flex items-center justify-center h-full text-gray-400">
             No image
           </div>
         )}
@@ -160,46 +211,52 @@ function ListingCard({ item }) {
           <h3 className="font-semibold text-lg">{item.title}</h3>
           <StatusBadge status={item.status} />
         </div>
-        <p className="text-gray-600 line-clamp-2">{item.description}</p>
 
-        <div className="flex items-center gap-3 text-sm text-gray-500 mt-2">
+        <p className="text-gray-600 line-clamp-2">
+          {item.description}
+        </p>
+
+        <div className="flex items-center gap-3 text-sm text-gray-500">
           <span className="inline-flex items-center gap-1">
             <Tag size={16} /> {item.category}
           </span>
+
           {item.location && (
             <span className="inline-flex items-center gap-1">
               <MapPin size={16} /> {item.location}
             </span>
           )}
+
           <span className="inline-flex items-center gap-1">
             <Clock size={16} /> {created}
           </span>
         </div>
 
-        <div className="mt-3">
-          <Link
-            to={`/listings/${item._id}`}
-            className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-          >
-            View
-          </Link>
-        </div>
+        <Link
+          to={`/listings/${item._id}`}
+          className="inline-block mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        >
+          View
+        </Link>
       </div>
     </div>
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* --------------------------- Status Badge -------------------------- */
+/* ------------------------------------------------------------------ */
+
 function StatusBadge({ status }) {
-  const styles =
-    {
-      available: 'bg-green-100 text-green-700',
-      pending: 'bg-yellow-100 text-yellow-700',
-      traded: 'bg-gray-200 text-gray-700',
-    }[status] || 'bg-gray-100 text-gray-700';
+  const styles = {
+    available: 'bg-green-100 text-green-700',
+    pending: 'bg-yellow-100 text-yellow-700',
+    traded: 'bg-gray-200 text-gray-700',
+  }[status] || 'bg-gray-100 text-gray-700';
 
   return (
     <span className={`text-xs px-2 py-1 rounded ${styles}`}>
       {status}
     </span>
-   );
+  );
 }
