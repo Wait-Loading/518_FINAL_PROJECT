@@ -113,4 +113,71 @@ router.post('/listings', auth, async (req, res, next) => {
   }
 });
 
+/**
+ * PATCH /api/listings/:id (protected)
+ * Update a listing. Only the owner can update.
+ */
+router.patch('/listings/:id', auth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Load listing
+    const listing = await Listing.findById(id);
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // Ownership check: only the creator can edit
+    if (String(listing.userId) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to update this listing' });
+    }
+
+    // Allowed fields
+    const allowed = ['title', 'description', 'category', 'condition', 'location', 'status', 'images'];
+    for (const key of allowed) {
+      // Only apply if provided (PATCH semantics)
+      if (key in req.body && req.body[key] !== undefined) {
+        if (key === 'title' || key === 'description' || key === 'category') {
+          listing[key] = typeof req.body[key] === 'string' ? req.body[key].trim() : req.body[key];
+        } else if (key === 'images') {
+          listing.images = Array.isArray(req.body.images) ? req.body.images : [];
+        } else {
+          listing[key] = req.body[key];
+        }
+      }
+    }
+
+    await listing.save();
+    // Return lean JSON shape consistent with your GET
+    const lean = listing.toObject();
+    return res.json({ listing: lean });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+router.delete('/listings/:id', auth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const listing = await Listing.findById(id);
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // Ownership check
+    if (String(listing.userId) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to delete this listing' });
+    }
+
+      await listing.deleteOne();
+    return res.json({ message: 'Listing deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+
 module.exports = router;

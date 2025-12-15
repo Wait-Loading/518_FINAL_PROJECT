@@ -111,7 +111,7 @@ export default function CreateListing() {
         typeof key === 'string' && key.includes('/listings')
       );
 
-      navigate('/my');
+      navigate('/my-listings');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create listing.');
     } finally {

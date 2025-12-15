@@ -61,6 +61,28 @@ export default function EditListingPage() {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
+const onDelete = async () => {
+  // Confirm first (optional)
+  const ok = window.confirm('Are you sure you want to delete this listing? This cannot be undone.');
+  if (!ok) return;
+
+  setSaving(true);
+  setErr('');
+
+  try {
+    await axios.delete(`${API_URL}/listings/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // After delete, send user either to their listings or home
+    navigate('/my-listings'); // adjust to your route, e.g. '/listings' or '/'
+  } catch (e) {
+    setErr(e.response?.data?.message || 'Failed to delete listing');
+  } finally {
+    setSaving(false);
+  }
+};
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -196,6 +218,15 @@ export default function EditListingPage() {
         >
                    {saving ? 'Saving…' : 'Save Changes'}
         </button>
+        
+<button
+  type="button"
+  onClick={onDelete}
+  disabled={saving}
+  className="w-full bg-red-600 text-white py-2 rounded disabled:opacity-60 mt-2"
+>
+    {saving ? 'Deleting…' : 'Delete Listing'}
+</button>
       </form>
     </div>
   );

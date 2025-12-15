@@ -1,23 +1,24 @@
 
+// Navbar.jsx
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Package,
-  User,
-  LogOut,
-  Plus,
-  Home,
-  Menu,
-  X,
+  Package, User, LogOut, Plus, Home, Menu, X, Trash2,
 } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // NEW: profile dropdown
+  const [showDelete, setShowDelete] = useState(false); // NEW: delete modal
+
   const location = useLocation();
+  const navigate = useNavigate();
+
   const drawerRef = useRef(null);
   const toggleBtnRef = useRef(null);
+  const menuBtnRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -34,104 +35,132 @@ export default function Navbar() {
   // Close on Escape key
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') setMobileOpen(false);
+      if (e.key === 'Escape') {
+        setMobileOpen(false);
+        setMenuOpen(false);
+        setShowDelete(false);
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Simple focus management: focus the first interactive element when opening
+  // Simple focus management for mobile drawer
   useEffect(() => {
     if (mobileOpen && drawerRef.current) {
-      const firstFocusable =
-        drawerRef.current.querySelector(
-          'a, button, [tabindex]:not([tabindex="-1"])'
-        );
+      const firstFocusable = drawerRef.current.querySelector(
+        'a, button, [tabindex]:not([tabindex="-1"])'
+      );
       firstFocusable?.focus();
     } else {
-      // return focus to the toggle button
       toggleBtnRef.current?.focus();
     }
   }, [mobileOpen]);
 
+  // Close profile menu if clicking outside
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (!menuOpen) return;
+      const btn = menuBtnRef.current;
+      const menu = document.getElementById('profile-menu');
+      if (menu && !menu.contains(e.target) && btn && !btn.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [menuOpen]);
+
   const Brand = (
-    <Link
-      to="/"
-      className="flex items-center gap-2 text-2xl font-bold hover:scale-105 transition-transform"
-      aria-label="Go to home"
-    >
-      <div className="bg-white text-blue-600 p-2 rounded-lg">🔄</div>
-      <span className="sr-only">The Exchanger</span>
-      <span aria-hidden>The Exchanger</span>
-    </Link>
+    <div className="flex items-center">
+      <Package className="text-blue-600 mr-2" size={20} />
+      <Link to="/" className="font-semibold text-gray-900">
+        The Exchanger
+      </Link>
+    </div>
   );
 
   const DesktopLinks = (
-    <div className="hidden md:flex gap-6 items-center">
+    <div className="hidden md:flex items-center gap-4">
       {user ? (
         <>
-          <Link
-            to="/"
-            className="flex items-center gap-2 hover:bg-blue-500 px-3 py-2 rounded-lg transition"
-          >
-            <Home size={18} />
-            Home
+          <Link to="/" className="flex items-center gap-1 text-gray-700 hover:text-blue-600">
+            <Home size={16} /> Home
           </Link>
-
-          <Link
-            to="/browse"
-            className="flex items-center gap-2 hover:bg-blue-500 px-3 py-2 rounded-lg transition"
-          >
-            <Package size={18} />
+          <Link to="/browse" className="text-gray-700 hover:text-blue-600">
             Browse
           </Link>
-
-          <Link
-            to="/create"
-            className="flex items-center gap-2 bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition font-medium"
-          >
-            <Plus size={18} />
-            Create Listing
+          <Link to="/create" className="flex items-center gap-1 text-gray-700 hover:text-blue-600">
+            <Plus size={16} /> Create Listing
           </Link>
-
-          <Link
-            to="/my-listings"
-            className="flex items-center gap-2 hover:bg-blue-500 px-3 py-2 rounded-lg transition"
-          >
-            <User size={18} />
+          <Link to="/my-listings" className="text-gray-700 hover:text-blue-600">
             My Items
           </Link>
 
-          <div className="border-l border-blue-400 pl-6 flex items-center gap-4">
-            <span className="text-sm">
-              Hi, <strong>{user.name}</strong>!
-            </span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition"
+          {/* Profile menu trigger */}
+          <button
+            ref={menuBtnRef}
+            onClick={() => setMenuOpen((v) => !v)}
+            className="ml-2 px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-100 text-gray-800 flex items-center gap-2"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+          >
+            <User size={16} />
+            <span>Hi, {user.name}!</span>
+          </button>
+
+          {/* Dropdown menu */}
+          {menuOpen && (
+            <div
+              id="profile-menu"
+              role="menu"
+              className="absolute right-4 top-14 z-50 w-56 rounded-md border bg-white shadow-lg"
             >
-              <LogOut size={18} />
-              Logout
-            </button>
-          </div>
+              <div className="p-2">
+                <Link
+                  to="/account"
+                  className="block px-3 py-2 rounded hover:bg-gray-100 text-sm text-gray-800"
+                  role="menuitem"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Account settings
+                </Link>
+
+                <button
+                  className="w-full text-left px-3 py-2 rounded hover:bg-red-50 text-sm text-red-700 flex items-center gap-2"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setShowDelete(true);
+                  }}
+                >
+                  <Trash2 size={16} />
+                  Delete account…
+                </button>
+
+                <button
+                  className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm text-gray-800 flex items-center gap-2"
+                  role="menuitem"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <>
-          <Link
-            to="/browse"
-            className="hover:bg-blue-500 px-3 py-2 rounded-lg transition"
-          >
+          <Link to="/browse" className="text-gray-700 hover:text-blue-600">
             Browse Items
           </Link>
-          <Link
-            to="/login"
-            className="hover:bg-blue-500 px-3 py-2 rounded-lg transition"
-          >
+          <Link to="/login" className="text-gray-700 hover:text-blue-600">
             Login
           </Link>
           <Link
-            to="/register"
-            className="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-gray-100 transition font-medium"
+            to="/signup"
+            className="px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
           >
             Sign Up
           </Link>
@@ -143,14 +172,11 @@ export default function Navbar() {
   const MobileToggle = (
     <button
       ref={toggleBtnRef}
-      type="button"
       onClick={toggleMobile}
-      className="md:hidden inline-flex items-center justify-center p-2 rounded-lg bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
-      aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-      aria-expanded={mobileOpen}
-      aria-controls="mobile-nav"
+      className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+      aria-label="Toggle menu"
     >
-      {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+      {mobileOpen ? <X size={20} /> : <Menu size={20} />}
     </button>
   );
 
@@ -158,130 +184,221 @@ export default function Navbar() {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/40 transition-opacity duration-200 ${
-          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
         onClick={() => setMobileOpen(false)}
+        className={`fixed inset-0 bg-black/20 transition-opacity ${mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         aria-hidden="true"
       />
       {/* Drawer */}
-      <div
-        id="mobile-nav"
+      <aside
         ref={drawerRef}
-        className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white text-gray-800 shadow-xl transform transition-transform duration-200 md:hidden ${
-          mobileOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobile navigation"
+        className={`fixed top-0 right-0 h-full w-72 bg-white shadow-xl border-l transition-transform ${mobileOpen ? 'translate-x-0' : 'translate-x-full'} md:hidden`}
+        aria-label="Menu"
       >
-        <div className="px-4 py-4 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2 text-lg font-semibold text-blue-700">
-            <Package size={20} />
-            Menu
+        <div className="flex items-center justify-between px-3 py-2 border-b">
+          <div className="flex items-center gap-2">
+            <Menu size={18} />
+            <span className="font-semibold">Menu</span>
           </div>
           <button
-            type="button"
             onClick={() => setMobileOpen(false)}
             className="p-2 rounded-lg hover:bg-gray-100"
             aria-label="Close menu"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        <nav className="px-4 py-3 space-y-1">
+        <nav className="p-3 space-y-2">
           {user ? (
             <>
-              <Link
-                to="/"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
-              >
-                <Home size={18} />
+              <Link to="/" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded hover:bg-gray-100">
                 Home
               </Link>
-
-              <Link
-                to="/browse"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
-              >
-                <Package size={18} />
+              <Link to="/browse" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded hover:bg-gray-100">
                 Browse
               </Link>
-
-              <Link
-                to="/create"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-              >
-                <Plus size={18} />
+              <Link to="/create" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded hover:bg-gray-100">
                 Create Listing
               </Link>
-
-              <Link
-                to="/my-listings"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
-              >
-                <User size={18} />
+              <Link to="/my-listings" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded hover:bg-gray-100">
                 My Items
               </Link>
 
-              <div className="mt-3 border-t pt-3 flex items-center justify-between">
-                <span className="text-sm">
-                  Signed in as <strong>{user.name}</strong>
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center gap-1 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600"
-                >
-                  <LogOut size={16} />
-                  Logout
-                </button>
-              </div>
+              <div className="px-3 py-2 text-xs text-gray-500">Signed in as {user.name}</div>
+
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  setShowDelete(true);
+                }}
+                className="w-full text-left px-3 py-2 rounded hover:bg-red-50 text-red-700 flex items-center gap-2"
+              >
+                <Trash2 size={16} /> Delete account…
+              </button>
+
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleLogout();
+                }}
+                className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 flex items-center gap-2"
+              >
+                <LogOut size={16} /> Logout
+              </button>
             </>
           ) : (
             <>
-              <Link
-                to="/browse"
-                className="block px-3 py-2 rounded-lg hover:bg-gray-100"
-              >
+              <Link to="/browse" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded hover:bg-gray-100">
                 Browse Items
               </Link>
-              <Link
-                to="/login"
-                className="block px-3 py-2 rounded-lg hover:bg-gray-100"
-              >
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded hover:bg-gray-100">
                 Login
               </Link>
-              <Link
-                to="/register"
-                className="block px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-              >
+              <Link to="/signup" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
                 Sign Up
               </Link>
             </>
           )}
         </nav>
-      </div>
+      </aside>
     </>
   );
 
   return (
-    <nav className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="flex justify-between items-center">
-          {/* Left: Brand */}
-          {Brand}
-
-          {/* Right: Desktop links */}
-          {DesktopLinks}
-
-          {/* Right: Mobile toggle */}
-          {MobileToggle}
-               </div>
+    <header className="sticky top-0 z-40 bg-white border-b">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        {/* Left: Brand */}
+        {Brand}
+        {/* Right: Desktop links */}
+        {DesktopLinks}
+        {/* Right: Mobile toggle */}
+        {MobileToggle}
       </div>
 
       {/* Mobile drawer */}
       {MobileDrawer}
-    </nav>
+
+      {/* Delete account modal */}
+      {showDelete && (
+        <DeleteAccountModal
+          onClose={() => setShowDelete(false)}
+          onDeleted={() => {
+            // Clear auth + redirect to login/home
+            logout();
+            localStorage.removeItem('token');
+            setShowDelete(false);
+            navigate('/login');
+            window.location.reload();
+          }}
+        />
+      )}
+    </header>
+  );
+}
+
+/** -------- DeleteAccountModal (inline component for simplicity) -------- */
+function DeleteAccountModal({ onClose, onDeleted }) {
+  const [ack, setAck] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState('');
+
+  const canDelete = ack && confirmText === 'DELETE' && !loading;
+
+ async function handleDelete() {
+  setErrMsg('');
+  setLoading(true);
+
+  try {
+    const token = localStorage.getItem('token');
+    const API_URL = 'http://localhost:5000/api';
+
+    const res = await fetch(`${API_URL}/auth/me`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (res.status === 204) {
+      onDeleted?.();
+      return;
+    }
+
+    // Handle error responses
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to delete account.');
+
+  } catch (err) {
+    setErrMsg(err.message || 'Something went wrong.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+
+      {/* Dialog */}
+      <div className="relative bg-white rounded-lg shadow-xl w-[90%] max-w-md p-4">
+        <h2 className="text-lg font-semibold text-red-700 flex items-center gap-2">
+          <Trash2 size={18} /> Delete account
+        </h2>
+
+        <p className="text-sm text-gray-700 mt-2">
+          This will permanently delete your account and all associated listings and trade offers.
+          This action cannot be undone.
+        </p>
+
+        <label className="flex items-center gap-2 mt-3">
+          <input
+            type="checkbox"
+            className="rounded"
+            checked={ack}
+            onChange={(e) => setAck(e.target.checked)}
+          />
+          <span className="text-sm text-gray-800">
+            I understand this action is permanent.
+          </span>
+        </label>
+
+        <div className="mt-3">
+          <p className="text-sm text-gray-600 mb-1">
+            Type <span className="font-mono font-semibold">DELETE</span> to confirm:
+          </p>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            className="w-full text-sm border-b border-gray-300 focus:border-red-600 outline-none px-1 py-1"
+            placeholder="DELETE"
+          />
+        </div>
+
+        {errMsg && <p className="text-sm text-red-600 mt-3">{errMsg}</p>}
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-2 rounded border hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={!canDelete}
+            className={`px-3 py-2 rounded text-white ${
+              canDelete ? 'bg-red-600 hover:bg-red-700' : 'bg-red-300 cursor-not-allowed'
+            }`}
+          >
+            {loading ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+           </div>
+    </div>
   );
 }

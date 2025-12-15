@@ -6,12 +6,83 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 
+const mongoose = require('mongoose');                 // ✅ IMPORT mongoose
+
+const Listing = require('../models/Listing');         // ✅ IMPORT Listing
+const TradeOffer = require('../models/TradeOffer');   // ✅ IMPORT TradeOffer
+
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID); 
 
 
 if (!process.env.JWT_SECRET) {
   console.error('❌ ERROR: JWT_SECRET is NOT SET in .env');
 }
+
+
+/* ---------------------------------------------------------------------- */
+/*  DELETE CURRENT USER (and associated Listings + TradeOffers)           */
+/* ---------------------------------------------------------------------- */
+async function cascadeDeleteUserData(userId, session = null) {
+  const opt = session ? { session } : {};
+
+  // 1) Delete the user's listings
+  await Listing.deleteMany({ userId }, opt);
+
+  // 2) Delete trade offers involving this user (as proposer OR recipient/owner)
+  await TradeOffer.deleteMany({
+    $or: [{ fromUserId: userId }, { toUserId: userId }],
+  }, opt);
+
+  // 3) Finally delete the user itself
+  await User.findByIdAndDelete(userId, opt);
+}
+
+router.delete('/me', auth, async (req, res, next) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    // Defensive guard in case auth middleware misfires
+    return res.status(400).json({ message: 'Missing authenticated user id' });
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    // Try transactional delete (requires replica set)
+    await session.withTransaction(async () => {
+      await cascadeDeleteUserData(userId, session);
+    });
+    return res.status(204).send();
+  } catch (txErr) {
+    console.warn('⚠️ Transaction failed, falling back to non-transactional delete:', txErr.message);
+    try {
+      await cascadeDeleteUserData(userId, null);
+      return res.status(204).send();
+    } catch (err) {
+      console.error('❌ Cascade delete failed:', err);
+      return next(err);
+    }
+  } finally {
+    session.endSession();
+  }
+});
+
+
+async function cascadeDeleteUserData(userId, session = null) {
+  const opt = session ? { session } : {};
+
+  // 1) Delete the user's listings
+  await Listing.deleteMany({ userId }, opt);
+
+  // 2) Delete trade offers involving this user (as proposer OR recipient/owner)
+  await TradeOffer.deleteMany({
+    $or: [{ fromUserId: userId }, { toUserId: userId }]
+  }, opt);
+
+  // 3) Finally delete the user itself
+  await User.findByIdAndDelete(userId, opt);
+}
+
+
 
 // REGISTER
 // REGISTER
@@ -179,4 +250,17 @@ router.post('/google', async (req, res) => {
     });
   }
 });
+// GET CURRENT USER
+router.get('/me', auth, (req, res) => {
+  res.json({
+    user: {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      location: req.user.location || null,
+      picture: req.user.picture || null,
+    }
+  });
+});
+
 module.exports = router;

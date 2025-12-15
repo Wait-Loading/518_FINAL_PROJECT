@@ -6,7 +6,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 
-const connectDB = require('./db'); // default export function from db.js
+const connectDB = require('./db');
 
 // Routers
 const authRoutes = require('./routes/auth');
@@ -37,21 +37,37 @@ app.use(morgan('dev'));
 
 /* ------------------------ Path normalization (rewrite) ------------------ */
 /**
- * Normalize common path mistakes before routing:
+ * Normalize & rewrite common mistakes BEFORE routing:
  * - Collapse multiple slashes
- * - Rewrite `/api/api/...` -> `/api/...`
+ * - Fix double /api prefixes
+ * - Map /auth/* and /api/* variants to canonical paths
+ * - Map /api/me or /auth/me to /api/auth/me
  */
 app.use((req, _res, next) => {
   const original = req.url;
-  // collapse multiple slashes except protocol part (not present here)
-  let normalized = original.replace(/\/{2,}/g, '/');
-  // fix double /api prefixes
+  let normalized = original;
+
+  // 1) collapse multiple slashes (e.g., ///api//auth//me -> /api/auth/me)
+  normalized = normalized.replace(/\/{2,}/g, '/');
+
+  // 2) fix accidental double /api prefix
   normalized = normalized.replace(/^\/api\/api\//, '/api/');
+
+  // 3) canonicalize delete-me aliases:
+  //    /api/me      -> /api/auth/me
+  //    /auth/me     -> /api/auth/me
+  if (normalized === '/api/me') normalized = '/api/auth/me';
+  if (normalized === '/auth/me') normalized = '/api/auth/me';
+
+  // 4) canonicalize whole /auth/ tree to /api/auth/
+  //    e.g., /auth/login -> /api/auth/login
+  if (/^\/auth\//.test(normalized)) {
+    normalized = normalized.replace(/^\/auth\//, '/api/auth/');
+  }
+
   if (normalized !== original) {
-    // Update both req.url and req.path for downstream middleware
     req.url = normalized;
     req.path = normalized.split('?')[0];
-    // Optional: log once while testing
     // console.log('🔧 normalized path:', original, '->', normalized);
   }
   next();
@@ -70,8 +86,11 @@ app.get('/api/health', (_req, res) => {
 });
 
 /* -------------------------------- Routes -------------------------------- */
-// Auth: /api/auth/*
+// Auth: canonical mount at /api/auth/*
 app.use('/api/auth', authRoutes);
+
+// (Optional convenience) also mirror auth router at /auth/* in case client hardcodes it:
+app.use('/auth', authRoutes);
 
 // Listings: /api/listings, /api/listings/:id, etc.
 app.use('/api', listingsRoutes);
@@ -80,7 +99,6 @@ app.use('/api', listingsRoutes);
 app.use('/api/trade-offers', tradeOfferRoutes);
 
 // Uploads API (multer handlers): /api/uploads/listing-images
-// ✅ Mount uploads router under /api/uploads (NOT /uploads)
 app.use('/api/uploads', uploadsRoutes);
 
 /* -------------------------- 404 & Error handlers ------------------------ */
@@ -105,9 +123,9 @@ const PORT = process.env.PORT || 5000;
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📂 Serving uploads from: ${UPLOADS_DIR}`);
       console.log(`🔗 Public uploads: http://localhost:${PORT}/api/uploads/<filename>`);
+      console.log(`🔐 Auth base: http://localhost:${PORT}/api/auth/* (also mirrored at /auth/*)`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);
-    // process.exit    // process.exit(1); // uncomment if you prefer failing fast
   }
 })();
