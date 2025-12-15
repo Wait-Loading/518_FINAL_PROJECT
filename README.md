@@ -166,46 +166,54 @@ http://localhost:5000
 
 * **Video Link:** (https://livealbany-my.sharepoint.com/:v:/g/personal/jpatel8_albany_edu/IQA_RVjy3CfpS4jCZz4i-GoiAWVDrNJcfdR14avazTRJiNw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=yQ5GaB)
 
-Sources & Documentation
-Official Documentation
+## Sources & Documentation
 
-React: https://react.dev/
-Vite: https://vitejs.dev/
-Express.js: https://expressjs.com/
-MongoDB: https://www.mongodb.com/docs/
-Mongoose: https://mongoosejs.com/
-Tailwind CSS: https://tailwindcss.com/
-Playwright: https://playwright.dev/
-Google Cloud: https://cloud.google.com/appengine/docs
+### Official Documentation
 
-External APIs
+* React: [https://react.dev/](https://react.dev/)
+* Vite: [https://vitejs.dev/](https://vitejs.dev/)
+* Express.js: [https://expressjs.com/](https://expressjs.com/)
+* MongoDB: [https://www.mongodb.com/docs/](https://www.mongodb.com/docs/)
+* Mongoose: [https://mongoosejs.com/](https://mongoosejs.com/)
+* Tailwind CSS: [https://tailwindcss.com/](https://tailwindcss.com/)
+* Playwright: [https://playwright.dev/](https://playwright.dev/)
+* Google Cloud App Engine: [https://cloud.google.com/appengine/docs](https://cloud.google.com/appengine/docs)
 
-wttr.in Weather API: https://github.com/chubin/wttr.in
-Google OAuth 2.0: https://developers.google.com/identity/protocols/oauth2
+---
 
-Libraries & Packages
+### External APIs
 
-SWR: https://swr.vercel.app/
-Axios: https://axios-http.com/
-Lucide React: https://lucide.dev/
-React Router: https://reactrouter.com/
-JWT: https://jwt.io/
-bcryptjs: https://www.npmjs.com/package/bcryptjs
-Multer: https://www.npmjs.com/package/multer
+* wttr.in Weather API: [https://github.com/chubin/wttr.in](https://github.com/chubin/wttr.in)
+* Google OAuth 2.0: [https://developers.google.com/identity/protocols/oauth2](https://developers.google.com/identity/protocols/oauth2)
 
-Learning Resources
+---
 
-MongoDB Atlas Setup: https://www.mongodb.com/docs/atlas/
-Google Cloud Deployment: https://cloud.google.com/appengine/docs/standard/nodejs/building-app
-OAuth Implementation: https://developers.google.com/identity/sign-in/web/sign-in
-Playwright Testing: https://playwright.dev/docs/intro
-Tailwind CSS Guide: https://tailwindcss.com/docs/installation
+### Libraries & Packages
 
-Course Materials
+* SWR: [https://swr.vercel.app/](https://swr.vercel.app/)
+* Axios: [https://axios-http.com/](https://axios-http.com/)
+* Lucide React: [https://lucide.dev/](https://lucide.dev/)
+* React Router: [https://reactrouter.com/](https://reactrouter.com/)
+* JSON Web Tokens (JWT): [https://jwt.io/](https://jwt.io/)
+* bcryptjs: [https://www.npmjs.com/package/bcryptjs](https://www.npmjs.com/package/bcryptjs)
+* Multer: [https://www.npmjs.com/package/multer](https://www.npmjs.com/package/multer)
 
-RPI CS Course lectures and materials
-Course textbook and references
-Lab assignments and examples
+---
+
+### Developer Tools & AI Assistance
+
+* GitHub Copilot: [https://github.com/features/copilot](https://github.com/features/copilot)
+* Claude (Anthropic): [https://www.anthropic.com/claude](https://www.anthropic.com/claude)
+
+---
+
+### Learning Resources
+
+* MongoDB Atlas Setup: [https://www.mongodb.com/docs/atlas/](https://www.mongodb.com/docs/atlas/)
+* Google Cloud Deployment Guide: [https://cloud.google.com/appengine/docs/standard/nodejs/building-app](https://cloud.google.com/appengine/docs/standard/nodejs/building-app)
+* OAuth Implementation Guide: [https://developers.google.com/identity/sign-in/web/sign-in](https://developers.google.com/identity/sign-in/web/sign-in)
+* Playwright Testing Documentation: [https://playwright.dev/docs/intro](https://playwright.dev/docs/intro)
+* Tailwind CSS Installation Guide: [https://tailwindcss.com/docs/installation](https://tailwindcss.com/docs/installation)
 
 ---
 
