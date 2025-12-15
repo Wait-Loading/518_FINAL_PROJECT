@@ -159,7 +159,7 @@ export default function Navbar() {
             Login
           </Link>
           <Link
-            to="/signup"
+            to="/register"
             className="px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
           >
             Sign Up

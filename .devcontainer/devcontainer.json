@@ -1,25 +1,54 @@
+
 {
   "name": "The Exchanger DevContainer",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
 
-  // 👇 IMPORTANT: point to your actual project folder
+  // The folder that opens in the container
   "workspaceFolder": "/workspaces/the-exchanger",
 
-  // -----------------------
-  // Ports (vite + backend)
-  // -----------------------
+  // Expose Vite frontend (5173) and Node backend (5000)
   "forwardPorts": [5000, 5173],
 
-  // -----------------------
-  // Env Vars for backend
-  // -----------------------
-  "containerEnv": {
-    "JWT_SECRET": "supersecretkey123",
-    "MONGO_URI": "mongodb+srv://jayp13161:Password13161@cluster0.jzssdvj.mongodb.net/mydatabase?retryWrites=true&w=majority"
+  // Optional: map ports so other tools can reach them from host
+  "portsAttributes": {
+    "5000": { "label": "API (backend)" },
+    "5173": { "label": "Vite (frontend)" }
   },
 
-  // -----------------------
-  // Auto-install dependencies
-  // -----------------------
-  "postCreateCommand": "cd backend && npm install && cd ../frontend && npm install"
+  // Features (Node and git come from image, but you can pin versions if needed)
+  "features": {},
+
+  // Mount Node caches to speed up installs (host-side caches)
+  "mounts": [
+    "source=${localEnv:HOME}/.npm,target=/home/node/.npm,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.cache,target=/home/node/.cache,type=bind,consistency=cached"
+  ],
+
+  // Ensure the right default user
+  "containerUser": "node",
+
+  // Environment variables (DO NOT put secrets here; use `.env` files)
+  "containerEnv": {
+    "NODE_ENV": "development"
+  },
+
+  // Runs after the container is created (install deps, prepare env)
+  "postCreateCommand": "bash .devcontainer/scripts/postCreate.sh",
+
+  // Runs every time the container starts (launch backend+frontend)
+  "postStartCommand": "bash .devcontainer/scripts/postStart.sh",
+
+  // Recommended VS Code extensions for JS/TS+React
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "formulahendry.code-runner"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  }
 }

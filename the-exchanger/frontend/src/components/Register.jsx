@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'; // ✅ ADD useEffect
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -12,10 +13,15 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // ✅ new local state for location detection
+  const [locStatus, setLocStatus] = useState('idle'); // idle | detecting | gps | geocoding | success | error
+  const [locError, setLocError] = useState('');
+
   const { register, googleLogin } = useAuth(); // ✅ ADD googleLogin
   const navigate = useNavigate();
 
-  // ✅ ADD THIS ENTIRE useEffect
+  // ✅ Google Identity script (unchanged)
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -49,7 +55,76 @@ export default function Register() {
     };
   }, []);
 
-  // ✅ ADD THIS FUNCTION
+  // ✅ Auto-detect location via IP on mount (external API inside same file)
+  useEffect(() => {
+    let cancelled = false;
+
+    const detectByIP = async () => {
+      try {
+        setLocStatus('detecting');
+        setLocError('');
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error(`ipapi.co HTTP ${res.status}`);
+        const json = await res.json();
+        const city = json.city || '';
+        const region = json.region || json.region_code || '';
+        const country = json.country_name || json.country || '';
+        const locationString = [city, region, country].filter(Boolean).join(', ');
+        if (!cancelled) {
+          setFormData((s) => ({ ...s, location: locationString }));
+          setLocStatus('success');
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLocError(e?.message || 'Unable to detect location from IP');
+          setLocStatus('error');
+        }
+      }
+    };
+
+    detectByIP();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ✅ GPS + reverse geocode fallback (also in same file)
+  const handleUseGPS = async () => {
+    setLocError('');
+    setLocStatus('gps');
+
+    const getCoords = () =>
+      new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation not supported'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      });
+
+    try {
+      const { lat, lon } = await getCoords();
+      setLocStatus('geocoding');
+      const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`open-meteo geocoding HTTP ${res.status}`);
+      const json = await res.json();
+      const first = Array.isArray(json.results) ? json.results[0] : null;
+      const city = first?.name || '';
+      const region = first?.admin1 || '';
+      const country = first?.country || '';
+      const locationString = [city, region, country].filter(Boolean).join(', ');
+      setFormData((s) => ({ ...s, location: locationString }));
+      setLocStatus('success');
+    } catch (e) {
+      setLocError(e?.message || 'Failed to get GPS location');
+      setLocStatus('error');
+    }
+  };
+
+  // ✅ existing Google callback
   const handleGoogleResponse = async (response) => {
     setError('');
     setLoading(true);
@@ -101,12 +176,12 @@ export default function Register() {
             </div>
           )}
 
-          {/* ✅ ADD THIS GOOGLE BUTTON SECTION */}
+          {/* ✅ Google button */}
           <div className="mb-6">
             <div id="googleSignUpButton" className="w-full"></div>
           </div>
 
-          {/* ✅ ADD THIS DIVIDER */}
+          {/* ✅ Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
@@ -171,6 +246,7 @@ export default function Register() {
               </div>
             </div>
 
+            {/* LOCATION */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Location (Optional)
@@ -186,6 +262,62 @@ export default function Register() {
                   placeholder="Troy, NY"
                 />
               </div>
+
+              {/* helper row: status + actions */}
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-xs text-gray-600 flex items-center gap-2">
+                  {locStatus === 'detecting' && <span>Detecting location via IP…</span>}
+                  {locStatus === 'gps' && <span>Getting GPS coordinates…</span>}
+                  {locStatus === 'geocoding' && <span>Resolving address…</span>}
+                  {locStatus === 'success' && formData.location && (
+                    <span>Detected: {formData.location}</span>
+                  )}
+                  {locStatus === 'error' && (
+                    <span className="text-red-600">{locError || 'Location unavailable'}</span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // retry IP detection
+                      setLocStatus('detecting');
+                      setLocError('');
+                      fetch('https://ipapi.co/json/')
+                        .then((r) => {
+                          if (!r.ok) throw new Error(`ipapi.co HTTP ${r.status}`);
+                          return r.json();
+                        })
+                        .then((json) => {
+                          const city = json.city || '';
+                          const region = json.region || json.region_code || '';
+                          const country = json.country_name || json.country || '';
+                          const locationString = [city, region, country].filter(Boolean).join(', ');
+                          setFormData((s) => ({ ...s, location: locationString }));
+                          setLocStatus('success');
+                        })
+                        .catch((e) => {
+                          setLocError(e?.message || 'Retry failed');
+                          setLocStatus('error');
+                        });
+                    }}
+                    className="text-[11px] text-blue-600 hover:text-blue-700"
+                  >
+                    Retry IP
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUseGPS}
+                    className="text-[11px] text-blue-600 hover:text-blue-700"
+                  >
+                    Use GPS
+                  </button>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">
+                Tip: Edit the field if detection is off. We’ll only save what you submit.
+              </p>
             </div>
 
             <button
@@ -207,7 +339,7 @@ export default function Register() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+                   <div className="mt-6 text-center">
             <p className="text-gray-600">
               Already have an account?{' '}
               <Link to="/login" className="text-blue-600 font-medium hover:underline">
