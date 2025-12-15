@@ -5,7 +5,7 @@ import axios from 'axios';
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://just-plate-423503-t0.uk.r.appspot.com/api';
 const api = axios.create({ baseURL: API_URL });
 
 const fetchUser = async (token) => {

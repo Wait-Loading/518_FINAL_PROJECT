@@ -31,7 +31,11 @@ app.use(express.json({ limit: '10mb' }));
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5000',
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5000', 
+      'https://just-plate-423503-t0.uk.r.appspot.com'
+    ],
     credentials: true,
   })
 );
