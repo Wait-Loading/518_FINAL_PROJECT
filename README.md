@@ -168,6 +168,47 @@ No backend test files were implemented.
 
 * **Video Link:** (https://livealbany-my.sharepoint.com/:v:/g/personal/jpatel8_albany_edu/IQA_RVjy3CfpS4jCZz4i-GoiAWVDrNJcfdR14avazTRJiNw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=yQ5GaB)
 
+Sources & Documentation
+Official Documentation
+
+React: https://react.dev/
+Vite: https://vitejs.dev/
+Express.js: https://expressjs.com/
+MongoDB: https://www.mongodb.com/docs/
+Mongoose: https://mongoosejs.com/
+Tailwind CSS: https://tailwindcss.com/
+Playwright: https://playwright.dev/
+Google Cloud: https://cloud.google.com/appengine/docs
+
+External APIs
+
+wttr.in Weather API: https://github.com/chubin/wttr.in
+Google OAuth 2.0: https://developers.google.com/identity/protocols/oauth2
+
+Libraries & Packages
+
+SWR: https://swr.vercel.app/
+Axios: https://axios-http.com/
+Lucide React: https://lucide.dev/
+React Router: https://reactrouter.com/
+JWT: https://jwt.io/
+bcryptjs: https://www.npmjs.com/package/bcryptjs
+Multer: https://www.npmjs.com/package/multer
+
+Learning Resources
+
+MongoDB Atlas Setup: https://www.mongodb.com/docs/atlas/
+Google Cloud Deployment: https://cloud.google.com/appengine/docs/standard/nodejs/building-app
+OAuth Implementation: https://developers.google.com/identity/sign-in/web/sign-in
+Playwright Testing: https://playwright.dev/docs/intro
+Tailwind CSS Guide: https://tailwindcss.com/docs/installation
+
+Course Materials
+
+RPI CS Course lectures and materials
+Course textbook and references
+Lab assignments and examples
+
 ---
 
 Thank you for reviewing this project.
