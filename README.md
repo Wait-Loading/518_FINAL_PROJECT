@@ -15,6 +15,9 @@ The frontend and backend are deployed **together as one application** and served
 * **Backend (API):** [https://just-plate-423503-t0.uk.r.appspot.com/](https://just-plate-423503-t0.uk.r.appspot.com/)
 
 > Both frontend and backend share the same deployment. API routes are available under `/api/*`.
+## Demo Video
+
+* **Video Link:** (https://livealbany-my.sharepoint.com/:v:/g/personal/jpatel8_albany_edu/IQA_RVjy3CfpS4jCZz4i-GoiAWVDrNJcfdR14avazTRJiNw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=yQ5GaB)
 
 ---
 
@@ -162,9 +165,6 @@ http://localhost:5000
 
 ---
 
-## Demo Video
-
-* **Video Link:** (https://livealbany-my.sharepoint.com/:v:/g/personal/jpatel8_albany_edu/IQA_RVjy3CfpS4jCZz4i-GoiAWVDrNJcfdR14avazTRJiNw?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=yQ5GaB)
 
 ## Sources & Documentation
 
